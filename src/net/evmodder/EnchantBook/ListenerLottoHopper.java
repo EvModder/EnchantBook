@@ -41,9 +41,8 @@ public class ListenerLottoHopper implements Listener{
 						level1Enchants += (2<<(enchLvl-1));
 					}
 					//just go ahead and mold it with what's in there
-					PermissibleBase perms = new PermissibleBase(null);
-					perms.addAttachment(pl, "evp.evchant.combine.abovenatural", true);
-					lotteryChest.setContents(pl.combine(lotteryChest.getContents(), perms));
+					lotteryChest.setContents(EnchantAPI.combineBooks(
+							lotteryChest.getContents(), EnchantBook.maxLevelLookupMap));
 
 					boolean win = false;
 					if(lotteryChest.firstEmpty() == -1)win = true;

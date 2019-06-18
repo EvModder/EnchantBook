@@ -2,6 +2,7 @@ package net.evmodder.EnchantBook;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -13,24 +14,21 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
-import EvLib.CommandBase2;
 import net.evmodder.EnchantBook.EnchantBook.LimitType;
+import net.evmodder.EvLib.EvCommand;
 
-public class CommandEnchant extends CommandBase2{
-	EnchantBook pl;
-
+public class CommandEnchant extends EvCommand{
 	public CommandEnchant(EnchantBook plugin){
 		super(plugin);
-		pl = plugin;
 	}
 
 	int getLevel(Enchantment ench, int lvl){
-		return lvl == -1 ? ench.getMaxLevel() : lvl == -2 ? pl.maxEnchValue(ench, LimitType.CONFIG) : lvl;
+		return lvl == -1 ? ench.getMaxLevel() : lvl == -2 ? EnchantBook.getMaxLevel(ench, LimitType.CONFIG) : lvl;
 	}
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String args[]){
-		if((sender instanceof Player) == false){
+		if(sender instanceof Player == false){
 			sender.sendMessage(ChatColor.RED+"This command can only be run by in-game players!");
 			return false;
 		}
@@ -41,11 +39,11 @@ public class CommandEnchant extends CommandBase2{
 			return true;
 		}
 		else if(args.length == 0){
-			p.sendMessage(ChatColor.RED+"Please specify an enchantment");
+			p.sendMessage(ChatColor.RED+"Please specify at least one enchantment");
 			return false;
 		}
-		//StringUtils.join(args, ',').replace("-", "_")
-		Collection<Enchantment> enchants = pl.getEnchantments(args[0].replace("-", "_"));
+		//TODO: multiple args, 1 per enchant, of form: <name>:<level>
+		Collection<Enchantment> enchants = EnchantAPI.parseEnchantList(args[0]);
 
 		if(enchants.isEmpty()){
 			p.sendMessage(ChatColor.RED+"Unknown/Un-added enchantment.");
@@ -53,16 +51,16 @@ public class CommandEnchant extends CommandBase2{
 				p.sendMessage(ChatColor.GRAY+"The plugin and server appear to be on different versions!");
 				p.sendMessage(ChatColor.GRAY+"Please update to the lastest release");
 			}
-			else{
+			/*else{
 				StringBuilder list = new StringBuilder(ChatColor.AQUA+"Please reference the list below:\n");
-				for(String id : pl.easyNames.getKeys(false)){
+				for(String id : EnchantBook.getPlugin().enchantLookupMap.keySet()){
 					String[] names = pl.easyNames.getString(id).split(",");
 					list.append(ChatColor.YELLOW).append(names[0]).append(ChatColor.GRAY)
 						.append('(').append(ChatColor.AQUA).append(id).append(ChatColor.GRAY)
 						.append(')').append(ChatColor.DARK_GRAY).append(", ");
 				}
 				p.sendMessage(list.substring(0, list.length()-2)+'.');
-			}
+			}*/
 			return true;
 		}
 
@@ -79,7 +77,7 @@ public class CommandEnchant extends CommandBase2{
 			if(lvlArg.contains("max")){
 				if(lvlArg.contains("nat")) lvlType = -1;//natural max
 				else if(lvlArg.contains("minec") || lvlArg.contains("mc") ||
-						lvlArg.contains("abs")) lvlType = 32767;//max supported by the game
+						lvlArg.contains("abs")) lvlType = EnchantBook.MAX_ENCHANT_LEVEL;
 //				else if(lvlArg.contains("conf")) level = -2;//configuration-set max
 				else lvlType = -2;
 			}
@@ -92,37 +90,27 @@ public class CommandEnchant extends CommandBase2{
 				lvlType = Integer.parseInt(lvlArg);
 			}
 		}
-		if(!p.hasPermission("evp.evchant.command.unrestricted")){
-			boolean natLimit = !p.hasPermission("evp.evchant.command.abovenatural");
-			boolean confLimit = !p.hasPermission("evp.evchant.command.aboveconfig");
-			for(Enchantment ench : enchants){
-				int lvl = getLevel(ench, lvlType);
-				if(lvl > pl.maxEnchValue(ench, LimitType.VANILLA) && natLimit){
-					p.sendMessage(ChatColor.RED+"Insufficient permission to enchant with "
-								+ChatColor.GOLD+ench.getName().toLowerCase()+" "+lvl);
-					return true;
-				}
-				else if(lvl > pl.maxEnchValue(ench, LimitType.CONFIG) && confLimit){
-					p.sendMessage(ChatColor.RED+"Insufficient permission to enchant with "
-								+ChatColor.GOLD+ench.getName().toLowerCase()+" "+lvl);
-					return true;
-				}
-			}
-		}
 
 		if(heldItem.getType() != Material.ENCHANTED_BOOK){
 			ItemMeta meta = heldItem.getItemMeta();
-
 			for(Enchantment ench : enchants){
-				if(meta.hasConflictingEnchant(ench) && !p.hasPermission("evp.evchant.command.conflicting")){
+				int level = getLevel(ench, lvlType);
+				if(level > ench.getMaxLevel()
+						&& !p.hasPermission("enchantbook.enchant.bypass.vanillamax"))
+					level = ench.getMaxLevel();
+				if(level > EnchantBook.getMaxLevel(ench, LimitType.CONFIG)
+						&& !p.hasPermission("enchantbook.enchant.bypass.configmax"))
+					level = EnchantBook.getMaxLevel(ench, LimitType.CONFIG);
+
+				if(meta.hasConflictingEnchant(ench) && !p.hasPermission("enchantbook.enchant.conflicting")){
 					p.sendMessage(ChatColor.RED+"Insufficient permission to add conflicting enchant "
-							+ChatColor.GOLD+ench.getName().toLowerCase());
+							+ChatColor.GOLD+ench.getKey().getKey().toLowerCase());
 					return true;
 				}
-				if(ench.canEnchantItem(heldItem) == false && !p.hasPermission("evp.evchant.command.anyitem")){
+				if(ench.canEnchantItem(heldItem) == false && !p.hasPermission("enchantbook.enchant.anyitem")){
 					p.sendMessage(ChatColor.RED+"Insufficient permission to enchant "
 							+ChatColor.GOLD+heldItem.getType().name().toLowerCase()+ChatColor.RED+" with "
-							+ChatColor.GOLD+ench.getName().toLowerCase());
+							+ChatColor.GOLD+ench.getKey().getKey().toLowerCase());
 					return true;
 				}
 				if(lvlType == 0) meta.removeEnchant(ench);
@@ -154,14 +142,16 @@ public class CommandEnchant extends CommandBase2{
 				p.sendMessage(ChatColor.AQUA+"Successfully removed stored enchantment"+(enchants.size()==1 ? "":"s"));
 
 			else if(lvlType == -1) p.sendMessage(ChatColor.AQUA+"Successfully stored enchantment"
-					+(enchants.size()==1 ? "":"s")+" at max natural level");
-
-			else if(lvlType == -2) p.sendMessage(ChatColor.AQUA+"Successfully stored enchantment"
-					+(enchants.size()==1 ? "":"s")+" at max config level");
+					+(enchants.size()==1 ? "":"s")+" at maximum level");
 
 			else p.sendMessage(ChatColor.AQUA+"Successfully stored enchantment"
 					+(enchants.size()==1 ? "":"s")+" at level "+ChatColor.GOLD+lvlType);
 		}
 		return true;
+	}
+
+	@Override public List<String> onTabComplete(CommandSender arg0, Command arg1, String arg2, String[] arg3){
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

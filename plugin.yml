@@ -30,6 +30,22 @@ permissions:
       description: Ability to enchant items with /enchant.
       default: op
 
+   enchantbook.enchant.conflicting:
+      description: Ability to add conflicting enchantments to the same item
+      default: op
+
+   enchantbook.enchant.bypass.vanillamax:
+      description: Ability to add conflicting enchantments to the same item
+      default: op
+
+   enchantbook.enchant.bypass.configmax:
+      description: Ability to add conflicting enchantments to the same item
+      default: op
+
+   enchantbook.enchant.anyitem:
+      description: Ability to add enchantments an item that does not normally them
+      default: op
+
    enchantbook.combine:
       description: Combine books with the command /combine-all.
       default: op
@@ -41,6 +57,10 @@ permissions:
    enchantbook.separate.free:
       description: Separate enchanted books without consuming regular books
       default: false
+
+   enchantbook.separate.all:
+      description: Separate all enchanted books in inventory (instead of just in hand)
+      default: op
 
    enchantbook.anvil:
       description: Permission to use anvils

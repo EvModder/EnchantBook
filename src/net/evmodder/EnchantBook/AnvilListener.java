@@ -20,13 +20,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 import net.evmodder.EnchantBook.EnchantBook.LimitType;
 
 public class AnvilListener implements Listener{
-	private EnchantBook plugin;
+	final EnchantBook plugin;
 	Set<AnvilInventory> openAnvils;
 
-	public AnvilListener(EnchantBook pl){
-		plugin = pl;
+	public AnvilListener(){
+		plugin = EnchantBook.getPlugin();
 		openAnvils = new HashSet<AnvilInventory>();
-		ChatColor color;
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
@@ -177,7 +176,7 @@ public class AnvilListener implements Listener{
 							(!p.hasPermission("evp.evchant.anvil.abovenatural")
 									&& values[i]+1 > enchants[i].getMaxLevel()) ||
 							(!p.hasPermission("evp.evchant.anvil.aboveconfig")
-									&& values[i]+1 > plugin.maxEnchValue(enchants[i], LimitType.CONFIG)))){
+									&& values[i]+1 > plugin.getMaxLevel(enchants[i], LimitType.CONFIG)))){
 						}
 						else{
 							++values[i];
