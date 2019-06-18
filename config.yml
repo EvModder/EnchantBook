@@ -1,0 +1,32 @@
+# Max Levels for Enchants (replaces vanilla defaults)
+max-levels:
+
+# Assumed maximum if not explicitly listed above
+# Use -1 for default vanilla maximums
+default-max: -1
+
+# Use old (1.3.1-1.7.10) enchanting mechanics:
+# Consumes 30 levels, but doesn't require lapis.
+old-enchanting-behavior: false
+
+# Enable anvil config features (required for everything below here)
+enable-anvil-features: true
+
+# Allow players to put mending AND infinity on bows again (1.9-1.11.1)
+mending-and-infinity-bows: true
+
+# Allow players to put multiple protection enchants on the same armor piece (1.14-1.14.2)
+multiple-protection-types: true
+
+looting-on-axe: true
+fire-aspect-on-axe: true
+sharpness-on-pickaxe: true
+looting-on-pickaxe: true
+fire-aspect-on-pickaxe: true
+sharpness-on-shovel: true
+looting-on-shovel: true
+fire-aspect-on-shovel: true
+sharpness-on-hoe: true
+looting-on-hoe: true
+fire-aspect-on-hoe: true
+silk-touch-on-sword: true

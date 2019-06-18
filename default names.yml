@@ -1,0 +1,37 @@
+0: protection,protect,prot
+1: fireprotection,fireprotect,flameprotect
+2: featherfalling,feather,fallprotect
+3: blastprotection,blastprotect
+4: projectileprotection,projectileprotect,projprotect
+5: respiration,resp
+6: aquaaffinity,wateraffinity
+7: thorns
+8: depthstrider,depths,depth
+9: frostwalker,frost
+10: curseofbinding,cursebinding,binding,bind
+16: sharpness,sharp
+17: smite
+18: baneofarthropods,baneofarthos,artho,spiderbane,arthopods
+19: knockback
+20: fireaspect,fire
+21: looting,loot
+22: sweepingedge,sweeping,sweep
+32: efficiency,efficient,eff
+33: silktouch,silk
+34: unbreaking,durability
+35: fortune
+48: power,pow
+49: punch,bowknockback
+50: flame
+51: infinity,inf
+61: luck,luckofthesea
+62: lure
+65: loyalty,loyal
+66: impaling
+67: riptide
+68: channeling
+70: mending,mend
+71: curseofvanishing,cursevanish,vanishing,vanish
+
+# You can add custom enchantments to this list as well, just specify the name and the ID.
+# (This is not compatible with all plugins)

@@ -1,0 +1,122 @@
+name: EnchantBook
+main: net.evmodder.EnchantBook.EnchantBook
+Author: EvModder
+version: 3.0 #3.0=1.14 rewrite
+
+commands:
+   combinebooks:
+      description: Merge matching enchantments on enchanted books
+      usage: /combine-all
+      aliases: [combine,combine-all,onebook,fullbook]
+      permission: enchantbook.combine
+      permission-message: You do not have permission to do this.
+
+   separatebooks:
+      description: Split enchantments onto separate books
+      usage: /separate
+      aliases: [separate,separate-ench,cut-all,sepbooks,splitbooks,splitench,sepench,split-ench]
+      permission: enchantbook.separate
+      permission-message: You do not have permission to do this.
+
+   enchant:
+      description: Enchant the item in your hand
+      usage: /ench <name>:<level/int_max/vanilla_max/config_max> ...
+      aliases: [evchant,bookenchant,itemenchant,ench,addenchant]
+      permission: enchantbook.enchant
+      permission-message: You do not have permission to do this.
+
+permissions:
+   enchantbook.enchant:
+      description: Ability to enchant items with /enchant.
+      default: op
+
+   enchantbook.combine:
+      description: Combine books with the command /combine-all.
+      default: op
+
+   enchantbook.separate:
+      description: Separate stored book enchantments with the command /separate
+      default: op
+
+   enchantbook.separate.free:
+      description: Separate enchanted books without consuming regular books
+      default: false
+
+   enchantbook.anvil:
+      description: Permission to use anvils
+      default: true
+        
+   enchantbook.anvil.color:
+      description: Add colors when naming an item on an anvil.
+      default: true
+      children:
+         enchantbook.anvil.color.aqua: true
+         enchantbook.anvil.color.black: true
+         enchantbook.anvil.color.blue: true
+         enchantbook.anvil.color.dark_aqua: true
+         enchantbook.anvil.color.dark_blue: true
+         enchantbook.anvil.color.dark_gray: true
+         enchantbook.anvil.color.dark_green: true
+         enchantbook.anvil.color.dark_purple: true
+         enchantbook.anvil.color.dark_red: true
+         enchantbook.anvil.color.gold: true
+         enchantbook.anvil.color.gray: true
+         enchantbook.anvil.color.green: true
+         enchantbook.anvil.color.light_purple: true
+         enchantbook.anvil.color.red: true
+         enchantbook.anvil.color.reset: true
+         enchantbook.anvil.color.white: true
+         enchantbook.anvil.color.yello: true
+
+   enchantbook.anvil.format:
+      description: Add formats when naming an item on an anvil.
+      default: true
+      children:
+         enchantbook.anvil.color.bold: true
+         enchantbook.anvil.color.italic: true
+         enchantbook.anvil.color.magic: true
+         enchantbook.anvil.color.reset: true
+         enchantbook.anvil.color.strikethrough: true
+         enchantbook.anvil.color.underline: true
+
+   enchantbook.unrestricted:
+      description: Unrestricted enchantment manipulation
+      children:
+         evp.evchant.combine.unrestricted: true
+         evp.evchant.anvil.unrestricted: true
+         evp.evchant.command.unrestricted: true
+         evp.evchant.abovenatural: true
+         evp.evchant.aboveconfig: true
+         evp.evchant.conflicting: true
+         evp.evchant.anyitem: true
+      default: op
+
+   enchantbook.aboveconfig:
+      description: Ability to get enchantments higher then allowed in the config.
+      children:
+         evp.evchant.combine.aboveconfig: true
+         evp.evchant.anvil.aboveconfig: true
+         evp.evchant.command.aboveconfig: true
+      default: op
+
+   enchantbook.abovenatural:
+      description: Ability to enchant items above the natural maximum
+      children:
+         evp.evchant.combine.abovenatural: true
+         evp.evchant.anvil.abovenatural: true
+         evp.evchant.command.abovenatural: true
+      default: op
+
+   enchantbook.conflicting:
+      description: Ability add conflicting enchantments to an item.
+      children:
+         evp.evchant.anvil.conflicting: true
+         evp.evchant.command.conflicting: true
+      default: op
+
+   enchantbook.anyitem:
+      description: Ability add enchantments to any item (such as hoes, blocks, etc)
+      children:
+         evp.evchant.anvil.anyitem: true
+         evp.evchant.command.anyitem: true
+      default: op

@@ -1,0 +1,37 @@
+durability: 10
+protection_environmental: 5
+loot_bonus_blocks: 5
+protection_fire: 5
+dig_speed: 10
+protection_fall: 5
+silk_touch: 1
+mending: 1
+protection_explosions: 5
+protection_projectile: 5
+oxygen: 5
+water_worker: 1
+thorns: 5
+arrow_infinite: 1
+damage_undead: 8
+arrow_fire: 3
+damage_all: 8
+arrow_knockback: 3
+knockback: 5
+arrow_damage: 8
+damage_arthropods: 8
+loot_bonus_mobs: 5
+fire_aspect: 5
+lure: 5
+luck: 5
+depth_strider: 3
+frost_walker: 8
+
+
+#The Default maximum for any enchant not listed above
+#0 for no absolute cap, -1 for default maximum //TODO!
+Default Max: 8
+
+Use old enchanting (pre-1.8): true
+
+anything-on-anvil: true //TODO!
+mending-and-infinity-bows: true //TODO!
