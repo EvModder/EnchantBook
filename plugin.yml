@@ -108,15 +108,3 @@ permissions:
          enchantbook.anvil.format.reset: true
          enchantbook.anvil.format.strikethrough: true
          enchantbook.anvil.format.underline: true
-
-   enchantbook.unrestricted:
-      description: Unrestricted enchantment manipulation
-      children:
-         evp.evchant.combine.unrestricted: true
-         evp.evchant.anvil.unrestricted: true
-         evp.evchant.command.unrestricted: true
-         evp.evchant.abovenatural: true
-         evp.evchant.aboveconfig: true
-         evp.evchant.conflicting: true
-         evp.evchant.anyitem: true
-      default: op

@@ -193,7 +193,7 @@ public class AnvilListener implements Listener{
 		return item0;
 	}
 
-	private void runAnvilItemUpdateLoop(){
+	private void runItemNameUpdateLoop(){
 		new BukkitRunnable(){@Override public void run(){
 			for(Entry<Permissible, AnvilInventory> anvilView : openAnvils.entrySet()){
 				ItemStack result = anvilView.getValue().getItem(2);
@@ -218,42 +218,40 @@ public class AnvilListener implements Listener{
 		if(evt.isCancelled() || evt.getInventory().getType() != InventoryType.ANVIL) return;
 		AnvilInventory anvil = (AnvilInventory)evt.getInventory();
 		openAnvils.put(evt.getWhoClicked(), anvil);
-		if(openAnvils.size() == 1) runAnvilItemUpdateLoop();
+		if(openAnvils.size() == 1) runItemNameUpdateLoop();
 
 		int slot = evt.getRawSlot();
-		if(slot > 2 || (slot == 2 && anvil.getItem(2) == null) || (slot != 2 && anvil.getItem(slot) != null))
-			return;
+		ItemStack result = anvil.getItem(2);
+
+		if(slot > 2) return; // Didn't click an anvil slot
+		if(slot == 2 && !validItem(result)) return; // Clicked result but it is empty
+		if(slot != 2 &&  !validItem(anvil.getItem(slot))) return; // Removed an input item
 
 		ItemStack item0 = anvil.getItem(0), item1 = anvil.getItem(1);
 
 		// This is (unnecessarily?) run every time the anvil is clicked ---------------------------------
 		if(!validItem(item0) && evt.getRawSlot() == 0 && validItem(evt.getCursor())) item0 = evt.getCursor();
 		if(!validItem(item1) && evt.getRawSlot() == 1 && validItem(evt.getCursor())) item1 = evt.getCursor();
-		if(!validItem(item0)) return;
-		if(validItem(item1) && item0.getType() != item1.getType()
-				&& item1.getType() != Material.ENCHANTED_BOOK) return;
-		final ItemStack resultItem = validItem(item1)
-				? anvilOutputItem(item0, item1, evt.getWhoClicked()) : item0.clone();
+		if(!validItem(item0)) return; // Must have a primary input
+		if(validItem(item1) && (item0.getType() == item1.getType() || item1.getType() == Material.ENCHANTED_BOOK)){
+			result = anvilOutputItem(item0, item1, evt.getWhoClicked());
+			anvil.setItem(2, result);//TODO: Recently added line, may break stuff!!
+		}
+		else if(!validItem(result)) return;
 		//-----------------------------------------------------------------------------------------------
 
-		// Set the result item and apply name color/format
+		// If they are removing the result item, ensure the name is set
 		if(evt.getRawSlot() == 2 && anvil.getItem(2) != null){
 			if(anvil.getItem(2).hasItemMeta() && anvil.getItem(2).getItemMeta().hasDisplayName()){
 				String itemName = anvil.getItem(2).getItemMeta().getDisplayName();
 				openAnvils.remove(evt.getInventory());
 
 				itemName = translateByPermission(itemName, evt.getWhoClicked());
-				ItemMeta meta = resultItem.getItemMeta();
+				ItemMeta meta = result.getItemMeta();
 				meta.setDisplayName(itemName);
-				resultItem.setItemMeta(meta);
-				evt.setCurrentItem(resultItem);
+				result.setItemMeta(meta);
+				evt.setCurrentItem(result);
 			}
-		}
-		else{
-			// Update the result item
-			new BukkitRunnable(){@Override public void run(){
-				evt.getInventory().setItem(2, resultItem);
-			}}.runTaskLater(plugin, 1);
 		}
 	}
 }
