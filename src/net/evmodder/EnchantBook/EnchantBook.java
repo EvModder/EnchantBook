@@ -6,19 +6,20 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.permissions.Permissible;
 import net.evmodder.EvLib.EvPlugin;
 import net.evmodder.EvLib.FileIO;
 
 public final class EnchantBook extends EvPlugin{
 	private static EnchantBook plugin; public static EnchantBook getPlugin(){return plugin;}
 	static HashMap<String, Enchantment> enchantLookupMap;
-	static HashMap<Enchantment, Integer> maxLevelLookupMap;
+	static HashMap<Enchantment, Integer> maxLevelConfig;
 	static final int MAX_ENCHANT_LEVEL = 32767;
 
 	@Override public void onEvEnable(){
 		plugin = this;
 		enchantLookupMap = new HashMap<String, Enchantment>();
-		maxLevelLookupMap = new HashMap<Enchantment, Integer>();
+		maxLevelConfig = new HashMap<Enchantment, Integer>();
 
 		InputStream defaultNames = getClass().getResourceAsStream("/enchant-names.yml");
 		YamlConfiguration enchAliases = FileIO.loadConfig(this, "enchant-names.yml", defaultNames);
@@ -34,7 +35,7 @@ public final class EnchantBook extends EvPlugin{
 			for(String enchName : maxLevels.getKeys(false)){
 				Enchantment ench = enchantLookupMap.get(enchName);
 				if(ench == null) getLogger().severe("Unknown enchantment: " + enchName);
-				maxLevelLookupMap.put(ench, maxLevels.getInt(enchName));
+				maxLevelConfig.put(ench, maxLevels.getInt(enchName));
 			}
 		}
 
@@ -63,30 +64,47 @@ public final class EnchantBook extends EvPlugin{
 			case GAME:
 				return MAX_ENCHANT_LEVEL;
 			case CONFIG:
-				return maxLevelLookupMap.get(ench);
+				return maxLevelConfig.get(ench);
 			case VANILLA:
 			default:
 				return ench.getMaxLevel();
 		}
 	}
-	static HashMap<Enchantment, Integer> maxSupported = new HashMap<Enchantment, Integer>();
-	static HashMap<Enchantment, Integer> maxVanilla = new HashMap<Enchantment, Integer>();
+	static HashMap<Enchantment, Integer> maxLevelSupported = new HashMap<Enchantment, Integer>();
+	static HashMap<Enchantment, Integer> maxLevelVanilla = new HashMap<Enchantment, Integer>();
+	static HashMap<Enchantment, Integer> maxLevelMins = new HashMap<Enchantment, Integer>();
 	static{
 		for(Enchantment enchant : Enchantment.values()){
-			maxSupported.put(enchant, MAX_ENCHANT_LEVEL);
-			maxVanilla.put(enchant, enchant.getMaxLevel());
+			maxLevelSupported.put(enchant, MAX_ENCHANT_LEVEL);
+			maxLevelVanilla.put(enchant, enchant.getMaxLevel());
+			maxLevelMins.put(enchant, Math.min(enchant.getMaxLevel(), maxLevelConfig.get(enchant)));
 		}
 	}
 	static HashMap<Enchantment, Integer> getMaxlevels(LimitType limit){
-		
 		switch(limit){
 			case GAME:
-				return maxSupported;
+				return maxLevelSupported;
 			case CONFIG:
-				return maxLevelLookupMap;
+				return maxLevelConfig;
 			case VANILLA:
 			default:
-				return maxVanilla;
+				return maxLevelVanilla;
+		}
+	}
+	static HashMap<Enchantment, Integer> getMaxLevels(Permissible p){
+		boolean aboveConfig = p.hasPermission("enchantbook.aboveconfig");
+		boolean aboveNatural = p.hasPermission("enchantbook.abovenatural");
+		if(aboveConfig && aboveNatural){
+			return maxLevelSupported;
+		}
+		else if(aboveNatural){
+			return maxLevelConfig;
+		}
+		else if(aboveConfig){
+			return maxLevelVanilla;
+		}
+		else{
+			return maxLevelMins;
 		}
 	}
 }

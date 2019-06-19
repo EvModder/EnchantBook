@@ -23,7 +23,21 @@ public class CommandEnchant extends EvCommand{
 	}
 
 	int getLevel(Enchantment ench, int lvl){
-		return lvl == -1 ? ench.getMaxLevel() : lvl == -2 ? EnchantBook.getMaxLevel(ench, LimitType.CONFIG) : lvl;
+		switch(lvl){
+			case -1:
+				return EnchantBook.getMaxLevel(ench, LimitType.VANILLA);
+			case -2:
+				return EnchantBook.getMaxLevel(ench, LimitType.CONFIG);
+			case -3:
+				return EnchantBook.getMaxLevel(ench, LimitType.GAME);
+			default:
+				return lvl;
+		}
+	}
+
+	@Override public List<String> onTabComplete(CommandSender arg0, Command arg1, String arg2, String[] arg3){
+		// TODO: stuff here
+		return null;
 	}
 
 	@Override
@@ -91,23 +105,25 @@ public class CommandEnchant extends EvCommand{
 			}
 		}
 
+		boolean aboveNatural = p.hasPermission("enchantbook.enchant.abovenatural");
+		boolean aboveConfig = p.hasPermission("enchantbook.enchant.aboveconfig");
+		boolean conflicting = p.hasPermission("enchantbook.enchant.conflicting");
+		boolean anyItem = p.hasPermission("enchantbook.enchant.anyitem");
 		if(heldItem.getType() != Material.ENCHANTED_BOOK){
 			ItemMeta meta = heldItem.getItemMeta();
 			for(Enchantment ench : enchants){
 				int level = getLevel(ench, lvlType);
-				if(level > ench.getMaxLevel()
-						&& !p.hasPermission("enchantbook.enchant.bypass.vanillamax"))
-					level = ench.getMaxLevel();
-				if(level > EnchantBook.getMaxLevel(ench, LimitType.CONFIG)
-						&& !p.hasPermission("enchantbook.enchant.bypass.configmax"))
-					level = EnchantBook.getMaxLevel(ench, LimitType.CONFIG);
+				int maxNatural = EnchantBook.getMaxLevel(ench, LimitType.VANILLA);
+				int maxConfig = EnchantBook.getMaxLevel(ench, LimitType.CONFIG);
+				if(level > maxNatural && !aboveNatural) level = maxNatural;
+				if(level > maxConfig && !aboveConfig) level = maxConfig;
 
-				if(meta.hasConflictingEnchant(ench) && !p.hasPermission("enchantbook.enchant.conflicting")){
+				if(meta.hasConflictingEnchant(ench) && !conflicting){
 					p.sendMessage(ChatColor.RED+"Insufficient permission to add conflicting enchant "
 							+ChatColor.GOLD+ench.getKey().getKey().toLowerCase());
 					return true;
 				}
-				if(ench.canEnchantItem(heldItem) == false && !p.hasPermission("enchantbook.enchant.anyitem")){
+				if(ench.canEnchantItem(heldItem) == false && !anyItem){
 					p.sendMessage(ChatColor.RED+"Insufficient permission to enchant "
 							+ChatColor.GOLD+heldItem.getType().name().toLowerCase()+ChatColor.RED+" with "
 							+ChatColor.GOLD+ench.getKey().getKey().toLowerCase());
@@ -148,10 +164,5 @@ public class CommandEnchant extends EvCommand{
 					+(enchants.size()==1 ? "":"s")+" at level "+ChatColor.GOLD+lvlType);
 		}
 		return true;
-	}
-
-	@Override public List<String> onTabComplete(CommandSender arg0, Command arg1, String arg2, String[] arg3){
-		// TODO Auto-generated method stub
-		return null;
 	}
 }

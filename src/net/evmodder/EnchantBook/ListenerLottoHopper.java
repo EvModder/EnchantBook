@@ -12,7 +12,6 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
-import org.bukkit.permissions.PermissibleBase;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class ListenerLottoHopper implements Listener{
@@ -42,7 +41,7 @@ public class ListenerLottoHopper implements Listener{
 					}
 					//just go ahead and mold it with what's in there
 					lotteryChest.setContents(EnchantAPI.combineBooks(
-							lotteryChest.getContents(), EnchantBook.maxLevelLookupMap));
+							lotteryChest.getContents(), EnchantBook.maxLevelConfig));
 
 					boolean win = false;
 					if(lotteryChest.firstEmpty() == -1)win = true;

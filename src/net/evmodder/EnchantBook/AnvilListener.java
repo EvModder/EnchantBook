@@ -1,7 +1,9 @@
 package net.evmodder.EnchantBook;
 
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -13,221 +15,245 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.scheduler.BukkitRunnable;
-import net.evmodder.EnchantBook.EnchantBook.LimitType;
+import net.evmodder.EvLib.extras.TypeUtils;
 
 public class AnvilListener implements Listener{
 	final EnchantBook plugin;
-	Set<AnvilInventory> openAnvils;
+	HashMap<Permissible, AnvilInventory> openAnvils;
 
 	public AnvilListener(){
 		plugin = EnchantBook.getPlugin();
-		openAnvils = new HashSet<AnvilInventory>();
+		openAnvils = new HashMap<Permissible, AnvilInventory>();
 	}
 
-	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onAnvilClick(final InventoryClickEvent evt){
-		if(!evt.isCancelled() && evt.getInventory().getType() == InventoryType.ANVIL
-				&& evt.getWhoClicked().hasPermission("evp.evchant.anvil"))
-		{
-			if(evt.getWhoClicked().hasPermission("evp.evchant.anvil.color")){
-				openAnvils.add((AnvilInventory) evt.getInventory());
-				if(openAnvils.size() == 1) runAnvilColorRenameWatcherLoop();
+	static boolean validItem(ItemStack item){
+		return item != null && item.getType() != Material.AIR;
+	}
+
+	static boolean hasName(ItemStack item){
+		return item.hasItemMeta() && item.getItemMeta().hasDisplayName();
+	}
+
+	static String translateByPermission(String str, Permissible p){
+		if(p.hasPermission("enchantbook.anvil.color") && p.hasPermission("enchantbook.anvil.format"))
+			return ChatColor.translateAlternateColorCodes('&', str);
+		HashSet<Character> hasPerm = new HashSet<Character>();
+		for(ChatColor color : ChatColor.values()){
+			String colorName = color.name().toLowerCase();
+			if(p.hasPermission("enchantbook.anvil.color."+colorName)
+			|| p.hasPermission("enchantbook.anvil.format."+colorName))
+					hasPerm.add(color.getChar());
+		}
+		StringBuilder builder = new StringBuilder();
+		boolean amp = false;
+		for(char ch : str.toCharArray()){
+			if(amp){
+				if(hasPerm.contains(ch)) builder.append(ChatColor.getByChar(ch));
+				else builder.append('&').append(ch);
+				amp = false;
 			}
+			else if(ch == '&') amp = true;
+			else builder.append(ch);
+		}
+		if(amp) builder.append('&');
+		return builder.toString();
+	}
 
-			if(evt.getRawSlot() > 2 || (evt.getInventory().getItem(0) == null && evt.getInventory().getItem(1) == null) ||
-					(evt.getRawSlot() != 2 && evt.getInventory().getItem(evt.getRawSlot()) != null) ||
-					(evt.getRawSlot() == 2 && evt.getInventory().getItem(2) == null)) return;
+	static boolean canApplyTo(ItemStack baseItem, ItemStack applied){
+		if(applied.getType() == baseItem.getType() || applied.getType() == Material.ENCHANTED_BOOK) return true;
+		switch(baseItem.getType()){
+			case DIAMOND_SWORD:
+			case DIAMOND_AXE:
+			case DIAMOND_PICKAXE:
+			case DIAMOND_SHOVEL:
+			case DIAMOND_HOE:
+			case DIAMOND_HELMET:
+			case DIAMOND_CHESTPLATE:
+			case DIAMOND_LEGGINGS:
+			case DIAMOND_BOOTS:
+				return applied.getType() == Material.DIAMOND;
+			case IRON_SWORD:
+			case IRON_AXE:
+			case IRON_PICKAXE:
+			case IRON_SHOVEL:
+			case IRON_HOE:
+			case IRON_HELMET:
+			case IRON_CHESTPLATE:
+			case IRON_LEGGINGS:
+			case IRON_BOOTS:
+			case CHAINMAIL_HELMET:
+			case CHAINMAIL_CHESTPLATE:
+			case CHAINMAIL_LEGGINGS:
+			case CHAINMAIL_BOOTS:
+				return applied.getType() == Material.IRON_INGOT;
+			case GOLDEN_SWORD:
+			case GOLDEN_AXE:
+			case GOLDEN_PICKAXE:
+			case GOLDEN_SHOVEL:
+			case GOLDEN_HOE:
+			case GOLDEN_HELMET:
+			case GOLDEN_CHESTPLATE:
+			case GOLDEN_LEGGINGS:
+			case GOLDEN_BOOTS:
+				return applied.getType() == Material.GOLD_INGOT;
+			case LEATHER_HELMET:
+			case LEATHER_CHESTPLATE:
+			case LEATHER_LEGGINGS:
+			case LEATHER_BOOTS:
+				return applied.getType() == Material.LEATHER;
+			case STONE_SWORD:
+			case STONE_AXE:
+			case STONE_PICKAXE:
+			case STONE_SHOVEL:
+			case STONE_HOE:
+				return applied.getType() == Material.COBBLESTONE;
+			case WOODEN_SWORD:
+			case WOODEN_AXE:
+			case WOODEN_PICKAXE:
+			case WOODEN_SHOVEL:
+			case WOODEN_HOE:
+				return TypeUtils.isPlanks(applied.getType());
+			case ELYTRA:
+				return applied.getType() == Material.PHANTOM_MEMBRANE;
+			case TURTLE_HELMET:
+				return applied.getType() == Material.SCUTE;
+			default:
+				return false;
+		}
+	}
 
-			//--------- This is unnecessarily run every time the anvil gets clicked -------------------------
-			ItemStack[] slotsToCombine = null;
-			if(evt.getInventory().getItem(0) != null && evt.getInventory().getItem(0).getType() != Material.AIR
-			&& evt.getInventory().getItem(1) != null && evt.getInventory().getItem(1).getType() != Material.AIR)
-				slotsToCombine = new ItemStack[]{evt.getInventory().getItem(0),evt.getInventory().getItem(1)};
+	private ItemStack anvilOutputItem(ItemStack item0, ItemStack item1, Permissible p){
+		item0 = item0.clone();
 
-			else if(evt.getCursor() != null && evt.getCursor().getType() != Material.AIR){
-				if(evt.getInventory().getItem(0) == null && evt.getRawSlot() == 0)
-					slotsToCombine = new ItemStack[]{evt.getCursor().clone(),evt.getInventory().getItem(1)};
+		// Apply durability improvements
+		if(item0.getItemMeta() instanceof Damageable && ((Damageable)item0.getItemMeta()).hasDamage()){
+			short maxDurability = item0.getType().getMaxDurability();
+			short durability = (short) Math.floor(maxDurability*.12);
+			if(item1.getType() == item0.getType()) durability +=
+					maxDurability - ((Damageable)item1.getItemMeta()).getDamage();
 
-				else if(evt.getInventory().getItem(1) == null && evt.getRawSlot() == 1)
-					slotsToCombine = new ItemStack[]{evt.getInventory().getItem(0),evt.getCursor().clone()};
+			((Damageable)item0.getItemMeta()).setDamage(
+					durability > maxDurability? 0 : maxDurability - durability);
+		}
+
+		Map<Enchantment, Integer> maxLevels = EnchantBook.getMaxLevels(p);
+		boolean conflicting = p.hasPermission("enchantbook.anvil.conflicting");
+		boolean anyItem = p.hasPermission("enchantbook.anvil.anyitem");
+
+		Map<Enchantment, Integer> appliedEnchants = item0.getEnchantments();
+		Map<Enchantment, Integer> storedEnchants = item0.getItemMeta() instanceof EnchantmentStorageMeta ?
+				((EnchantmentStorageMeta)item0.getItemMeta()).getStoredEnchants() : null;
+		for(Entry<Enchantment, Integer> enchant : item1.getItemMeta().getEnchants().entrySet()){
+			if(!conflicting && item0.getItemMeta().hasConflictingEnchant(enchant.getKey())) continue;
+			if(!anyItem && enchant.getKey().canEnchantItem(item0) == false) continue;
+
+			int currentLevel = appliedEnchants.getOrDefault(enchant.getKey(), 0);
+			if(currentLevel == enchant.getValue() && currentLevel < maxLevels.get(enchant.getKey())){
+				appliedEnchants.put(enchant.getKey(), currentLevel + 1);
 			}
-			final ItemStack item;
-			if(slotsToCombine != null){
-				if(slotsToCombine[0].getType() != slotsToCombine[1].getType()
-						&& slotsToCombine[1].getType() != Material.ENCHANTED_BOOK) return;
-				item = forgeItemFromInventory(plugin.getServer().getPlayer(evt.getWhoClicked().getUniqueId()), slotsToCombine);
+			else if(enchant.getValue() > currentLevel){
+				appliedEnchants.put(enchant.getKey(), enchant.getValue());
 			}
-			else item = evt.getInventory().getItem(0).clone();
-			//-----------------------------------------------------------------------------------------------
+		}
+		if(item0.getItemMeta() instanceof EnchantmentStorageMeta){
+			Map<Enchantment, Integer> addedStoredEnchants =
+					((EnchantmentStorageMeta)item1.getItemMeta()).getStoredEnchants();
+			if(storedEnchants == null){
+				for(Entry<Enchantment, Integer> enchant : addedStoredEnchants.entrySet()){
+					if(!conflicting && item0.getItemMeta().hasConflictingEnchant(enchant.getKey())) continue;
+					if(!anyItem && enchant.getKey().canEnchantItem(item0) == false) continue;
 
-			if(evt.getRawSlot() == 2 && evt.getInventory().getItem(2) != null){
-				if(evt.getWhoClicked().hasPermission("evp.evchant.anvil.color") &&
-						evt.getInventory().getItem(2).hasItemMeta() && evt.getInventory().getItem(2).getItemMeta()
-						.hasDisplayName())
-				{
-					String itemName = evt.getInventory().getItem(2).getItemMeta().getDisplayName();
-					openAnvils.remove(evt.getInventory());
-
-					if(evt.getInventory().getItem(0).hasItemMeta()
-							&& evt.getInventory().getItem(0).getItemMeta().hasDisplayName()
-							&& ChatColor.stripColor(evt.getInventory().getItem(0).getItemMeta().getDisplayName())
-							.equals(itemName))
-					{
-						itemName = evt.getInventory().getItem(0).getItemMeta().getDisplayName();
+					int currentLevel = appliedEnchants.getOrDefault(enchant.getKey(), 0);
+					if(currentLevel == enchant.getValue() && currentLevel < maxLevels.get(enchant.getKey())){
+						appliedEnchants.put(enchant.getKey(), currentLevel + 1);
 					}
-					else itemName = ChatColor.translateAlternateColorCodes('&', itemName);
-
-					ItemMeta meta = item.getItemMeta();
-					meta.setDisplayName(itemName);
-					item.setItemMeta(meta);
-
-					evt.setCurrentItem(item);
+					else if(enchant.getValue() > currentLevel){
+						appliedEnchants.put(enchant.getKey(), enchant.getValue());
+					}
 				}
 			}
 			else{
-				new BukkitRunnable(){@Override public void run(){
-					evt.getInventory().setItem(2, item);
-				}}.runTaskLater(plugin, 1);
+				for(Entry<Enchantment, Integer> enchant : addedStoredEnchants.entrySet()){
+					int currentLevel = storedEnchants.getOrDefault(enchant.getKey(), 0);
+					if(currentLevel == enchant.getValue() && currentLevel < maxLevels.get(enchant.getKey())){
+						storedEnchants.put(enchant.getKey(), currentLevel + 1);
+					}
+					else if(enchant.getValue() > currentLevel){
+						storedEnchants.put(enchant.getKey(), enchant.getValue());
+					}
+				}
 			}
-		}//if it's an anvil
+		}
+		//TODO: ensure enchants are actually updated
+		return item0;
+	}
+
+	private void runAnvilItemUpdateLoop(){
+		new BukkitRunnable(){@Override public void run(){
+			for(Entry<Permissible, AnvilInventory> anvilView : openAnvils.entrySet()){
+				ItemStack result = anvilView.getValue().getItem(2);
+				if(validItem(result) && hasName(result)){
+					ItemMeta meta = result.getItemMeta();
+					meta.setDisplayName(translateByPermission(meta.getDisplayName(), anvilView.getKey()));
+					result.setItemMeta(meta);
+					anvilView.getValue().setItem(2, result);
+				}
+			}
+			if(openAnvils.isEmpty()) cancel();
+		}}.runTaskTimer(plugin, 2, 2);
 	}
 
 	@EventHandler
 	public void onAnvilClose(InventoryCloseEvent evt){
-		if(evt.getInventory().getType() == InventoryType.ANVIL && evt.getPlayer().hasPermission("evp.evchant.anvil.color")){
-			openAnvils.remove(evt.getInventory());
-		}
+		if(evt.getInventory().getType() == InventoryType.ANVIL) openAnvils.remove(evt.getPlayer());
 	}
 
-	private void runAnvilColorRenameWatcherLoop(){
-		new BukkitRunnable(){@Override public void run(){
-			for(AnvilInventory anvil : openAnvils){
-				ItemStack result = anvil.getItem(2);
-				if(result != null && result.getType() != Material.AIR && result.hasItemMeta()
-						&& result.getItemMeta().hasDisplayName()){
-					ItemMeta meta = result.getItemMeta();
-					meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', meta.getDisplayName()));
-					result.setItemMeta(meta);
-					anvil.setItem(2, result);
-				}
-			}
-			if(!openAnvils.isEmpty()) runAnvilColorRenameWatcherLoop();
-		}}.runTaskLater(plugin, 2);
-	}
+	@EventHandler(priority = EventPriority.HIGHEST)
+	public void onAnvilClick(final InventoryClickEvent evt){
+		if(evt.isCancelled() || evt.getInventory().getType() != InventoryType.ANVIL) return;
+		AnvilInventory anvil = (AnvilInventory)evt.getInventory();
+		openAnvils.put(evt.getWhoClicked(), anvil);
+		if(openAnvils.size() == 1) runAnvilItemUpdateLoop();
 
-	private ItemStack forgeItemFromInventory(Permissible p, ItemStack[] inv){
-		ItemStack result = inv[0].clone();
-		if(result.getDurability() != 0){
-			short maxDurability = result.getType().getMaxDurability();
-			short durability = (short) Math.floor(maxDurability*.12);
-			for(ItemStack item : inv) if(item.getType() == result.getType()) durability += maxDurability-item.getDurability();
-			result.setDurability(durability > maxDurability ? 0 : (short)(maxDurability-durability));
-		}
+		int slot = evt.getRawSlot();
+		if(slot > 2 || (slot == 2 && anvil.getItem(2) == null) || (slot != 2 && anvil.getItem(slot) != null))
+			return;
 
-		StringBuilder enchNames = new StringBuilder();
-		StringBuilder enchValues = new StringBuilder();
-		boolean books = true;
+		ItemStack item0 = anvil.getItem(0), item1 = anvil.getItem(1);
 
-		for(int i=0; i<inv.length; ++i){
-			for(Enchantment enchant : inv[i].getEnchantments().keySet()){
-				enchNames.append(enchant.getName()).append(',');
-				enchValues.append(inv[i].getEnchantmentLevel(enchant)).append(',');
-			}
-			if(inv[i].getType() == Material.ENCHANTED_BOOK){
-				EnchantmentStorageMeta bookmeta = (EnchantmentStorageMeta)inv[i].getItemMeta();
+		// This is (unnecessarily?) run every time the anvil is clicked ---------------------------------
+		if(!validItem(item0) && evt.getRawSlot() == 0 && validItem(evt.getCursor())) item0 = evt.getCursor();
+		if(!validItem(item1) && evt.getRawSlot() == 1 && validItem(evt.getCursor())) item1 = evt.getCursor();
+		if(!validItem(item0)) return;
+		if(validItem(item1) && item0.getType() != item1.getType()
+				&& item1.getType() != Material.ENCHANTED_BOOK) return;
+		final ItemStack resultItem = validItem(item1)
+				? anvilOutputItem(item0, item1, evt.getWhoClicked()) : item0.clone();
+		//-----------------------------------------------------------------------------------------------
 
-				for(Enchantment enchant : bookmeta.getStoredEnchants().keySet()){
-					enchNames.append(enchant.getName()).append(',');
-					enchValues.append(bookmeta.getStoredEnchantLevel(enchant)).append(',');
-				}
-			}
-			else books = false;
-		}
+		// Set the result item and apply name color/format
+		if(evt.getRawSlot() == 2 && anvil.getItem(2) != null){
+			if(anvil.getItem(2).hasItemMeta() && anvil.getItem(2).getItemMeta().hasDisplayName()){
+				String itemName = anvil.getItem(2).getItemMeta().getDisplayName();
+				openAnvils.remove(evt.getInventory());
 
-		if(enchNames.length() == 0) return result;
-
-		String[] nameString = enchNames.substring(0, enchNames.length()-1).split(",");
-		String[] valueString = enchValues.substring(0, enchValues.length()-1).split(",");
-		Enchantment[] enchants = new Enchantment[nameString.length];
-		int[] values = new int[enchants.length];
-
-		for(int i=0; i<nameString.length; ++i){
-			try{
-				enchants[i] = Enchantment.getByName(nameString[i]);
-				values[i] = Integer.parseInt(valueString[i]);
-			}
-			catch(NumberFormatException e){return null;}
-		}
-		boolean matches = true;
-		while(matches){
-			matches = false;
-			for(int i=0; i<enchants.length; ++i){
-				if(enchants[i] != null)
-				for(int x=0; x<enchants.length; ++x){
-
-					if(enchants[x] != null)
-					if(x != i && enchants[i].getName().equals(enchants[x].getName()) && values[i] == values[x]){
-						//
-						if(!p.hasPermission("evp.evchant.anvil.unrestricted") && (
-							(!p.hasPermission("evp.evchant.anvil.abovenatural")
-									&& values[i]+1 > enchants[i].getMaxLevel()) ||
-							(!p.hasPermission("evp.evchant.anvil.aboveconfig")
-									&& values[i]+1 > plugin.getMaxLevel(enchants[i], LimitType.CONFIG)))){
-						}
-						else{
-							++values[i];
-							enchants[x] = null;
-							matches = true;
-						}
-					}
-				}
+				itemName = translateByPermission(itemName, evt.getWhoClicked());
+				ItemMeta meta = resultItem.getItemMeta();
+				meta.setDisplayName(itemName);
+				resultItem.setItemMeta(meta);
+				evt.setCurrentItem(resultItem);
 			}
 		}
-		for(int i=0; i<enchants.length; ++i){
-			if(enchants[i] != null)
-			for(int x=0; x<enchants.length; ++x){
-
-				if(enchants[x] != null)
-				if(x != i && enchants[i].getName().equals(enchants[x].getName())){
-					if(values[i] > values[x]) enchants[x] = null;
-					else enchants[i] = null;
-				}
-			}
+		else{
+			// Update the result item
+			new BukkitRunnable(){@Override public void run(){
+				evt.getInventory().setItem(2, resultItem);
+			}}.runTaskLater(plugin, 1);
 		}
-		//Add the enchantments/(or stored enchants) of both items combined to the resulting item
-
-		if(books){//if it is just a bunch of books added together
-			EnchantmentStorageMeta bookmeta = (EnchantmentStorageMeta)result.getItemMeta();
-			//first remove the old stored enchants
-			for(Enchantment storedEnchant : bookmeta.getStoredEnchants().keySet())
-				bookmeta.removeStoredEnchant(storedEnchant);
-
-			//then add the new stored enchants
-			for(int i=0; i<enchants.length; ++i)if(enchants[i] != null)
-					bookmeta.addStoredEnchant(enchants[i], values[i], true);
-			//and then register it all
-			result.setItemMeta(bookmeta);
-		}
-		else{//if any of the items is NOT an enchanted book
-			ItemMeta meta = result.getItemMeta();
-			//first remove the enchants
-			for(Enchantment enchant : result.getEnchantments().keySet())meta.removeEnchant(enchant);
-
-			//then add the new enchants
-			for(int i=0; i<enchants.length; ++i) if(enchants[i] != null){
-				if((meta.hasConflictingEnchant(enchants[i]) && p.hasPermission("evp.evchant.anvil.conflicting") == false) ||
-					(enchants[i].canEnchantItem(result) == false && p.hasPermission("evp.evchant.anvil.anyitem") == false)){
-					//stub
-				}
-				else meta.addEnchant(enchants[i], values[i], true);
-			}
-			//and then register it all
-			result.setItemMeta(meta);
-		}
-		return result;
 	}
 }
