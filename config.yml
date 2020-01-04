@@ -6,7 +6,7 @@ max-levels:
   punch: 2
   binding: 1
   channeling: 1
-  sharpness: 1
+  sharpness: 5
   bane_of_arthropods: 5
   smite: 5
   depth_strider: 3
@@ -41,21 +41,22 @@ max-levels:
 
 # Assumed maximum if not explicitly listed above
 # Use -1 for default vanilla maximums
-default-max: -1
+default-max: -1 #TODO: implement
 
 # Use old (1.3.1-1.7.10) enchanting mechanics:
 # Consumes 30 levels, but doesn't require lapis.
-old-enchanting-behavior: false
+old-enchanting-behavior: false #TODO: test
 
 # Enable anvil config features (required for everything below here)
 enable-anvil-features: true
 
 # Allow players to put mending AND infinity on bows again (1.9-1.11.1)
-mending-and-infinity-bows: true
+mending-and-infinity-bows: true #TODO: implement
 
 # Allow players to put multiple protection enchants on the same armor piece (1.14-1.14.2)
-multiple-protection-types: true
+multiple-protection-types: true #TODO: implement
 
+#TODO: implement
 looting-on-axe: true
 fire-aspect-on-axe: true
 sharpness-on-pickaxe: true

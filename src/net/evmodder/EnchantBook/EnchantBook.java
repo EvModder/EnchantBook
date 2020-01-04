@@ -25,17 +25,22 @@ public final class EnchantBook extends EvPlugin{
 		YamlConfiguration enchAliases = FileIO.loadConfig(this, "enchant-names.yml", defaultNames);
 		for(String key : enchAliases.getKeys(false)){
 			String[] aliases = enchAliases.getString(key).toLowerCase().replaceAll("_", "").split(",");
-			@SuppressWarnings("deprecation")
-			Enchantment ench = Enchantment.getByName(key);
-			enchantLookupMap.put(key.toLowerCase().replaceAll("_", ""), ench);
-			for(String s : aliases) enchantLookupMap.put(s, ench);
+			Enchantment ench = parseEnchant(key);
+			if(ench == null) getLogger().severe("Unknown enchantment: " + key);
+			else{
+				enchantLookupMap.put(key.toLowerCase().replaceAll("_", ""), ench);
+				for(String s : aliases) enchantLookupMap.put(s, ench);
+			}
 		}
 		if(config.contains("max-levels")){
 			ConfigurationSection maxLevels = config.getConfigurationSection("max-levels");
 			for(String enchName : maxLevels.getKeys(false)){
-				Enchantment ench = enchantLookupMap.get(enchName);
+				Enchantment ench = enchantLookupMap.get(enchName.replaceAll("_", "").toLowerCase());
 				if(ench == null) getLogger().severe("Unknown enchantment: " + enchName);
-				maxLevelConfig.put(ench, maxLevels.getInt(enchName));
+				else{
+					maxLevelConfig.put(ench, maxLevels.getInt(enchName));
+					maxLevelMins.put(ench, Math.min(ench.getMaxLevel(), maxLevels.getInt(enchName)));
+				}
 			}
 		}
 
@@ -51,8 +56,8 @@ public final class EnchantBook extends EvPlugin{
 
 	@SuppressWarnings("deprecation")
 	public static Enchantment parseEnchant(String str){
-		Enchantment ench = Enchantment.getByKey(NamespacedKey.minecraft(str));
-		if(ench == null) ench = Enchantment.getByName(str);
+		Enchantment ench = Enchantment.getByKey(NamespacedKey.minecraft(str.toLowerCase()));
+		if(ench == null) ench = Enchantment.getByName(str.toUpperCase());
 		if(ench == null && enchantLookupMap != null)
 			ench = enchantLookupMap.get(str.toLowerCase().replaceAll("_", ""));
 		return ench;
@@ -77,7 +82,6 @@ public final class EnchantBook extends EvPlugin{
 		for(Enchantment enchant : Enchantment.values()){
 			maxLevelSupported.put(enchant, MAX_ENCHANT_LEVEL);
 			maxLevelVanilla.put(enchant, enchant.getMaxLevel());
-			maxLevelMins.put(enchant, Math.min(enchant.getMaxLevel(), maxLevelConfig.get(enchant)));
 		}
 	}
 	static HashMap<Enchantment, Integer> getMaxlevels(LimitType limit){

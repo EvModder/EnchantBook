@@ -244,7 +244,7 @@ public class AnvilListener implements Listener{
 		if(evt.getRawSlot() == 2 && anvil.getItem(2) != null){
 			if(anvil.getItem(2).hasItemMeta() && anvil.getItem(2).getItemMeta().hasDisplayName()){
 				String itemName = anvil.getItem(2).getItemMeta().getDisplayName();
-				openAnvils.remove(evt.getInventory());
+				openAnvils.remove(evt.getWhoClicked());
 
 				itemName = translateByPermission(itemName, evt.getWhoClicked());
 				ItemMeta meta = result.getItemMeta();

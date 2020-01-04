@@ -2,6 +2,7 @@ name: EnchantBook
 main: net.evmodder.EnchantBook.EnchantBook
 Author: EvModder
 version: 3.0 #3.0=1.14 rewrite
+api-version: 1.13
 
 commands:
    combinebooks:

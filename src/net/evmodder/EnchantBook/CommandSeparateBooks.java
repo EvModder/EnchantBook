@@ -79,8 +79,9 @@ public class CommandSeparateBooks extends EvCommand{
 			int numBooks = EnchantAPI.countItem(p.getInventory(), Material.BOOK) + 1;
 			if(!p.hasPermission("enchantbook.separate.free") && p.getGameMode() != GameMode.CREATIVE){
 				if(numBooks < resultBooks.length){
-					p.sendMessage(ChatColor.RED+"You need "+ChatColor.GOLD+(resultBooks.length-numBooks)+
-							ChatColor.RED+" more empty books in your inventory to do this");
+					int need = resultBooks.length - numBooks;
+					p.sendMessage(ChatColor.RED+"You need "+ChatColor.GOLD+need+ChatColor.RED
+							+" more regular book"+(need>1?"s":"")+" in your inventory to do this");
 					return true;
 				}
 				p.getInventory().remove(Material.BOOK);

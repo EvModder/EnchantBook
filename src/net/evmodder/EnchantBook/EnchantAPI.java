@@ -3,6 +3,7 @@ package net.evmodder.EnchantBook;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -75,21 +76,24 @@ public class EnchantAPI{
 		for(ItemStack item : books){
 			if(item != null && item.getType() == Material.ENCHANTED_BOOK){
 				EnchantmentStorageMeta bookmeta = (EnchantmentStorageMeta)item.getItemMeta();
+				HashMap<Enchantment, Integer> mutableEnchants = new HashMap<Enchantment, Integer>();
+				for(Entry<Enchantment, Integer> enchant : bookmeta.getStoredEnchants().entrySet())
+					mutableEnchants.put(enchant.getKey(), enchant.getValue());
 				boolean maxLevel = false;
-				for(Entry<Enchantment, Integer> enchant : bookmeta.getStoredEnchants().entrySet()){
+				for(Entry<Enchantment, Integer> enchant : mutableEnchants.entrySet()){
 					if(enchant.getValue() >= maxLevels.get(enchant.getKey())){
 						maxLevel = true;
 						break;
 					}
 				}
-				while(mergeBooks.remove(bookmeta.getStoredEnchants())){
-					for(Entry<Enchantment, Integer> enchant : bookmeta.getStoredEnchants().entrySet()){
+				while(mergeBooks.remove(mutableEnchants)){
+					for(Entry<Enchantment, Integer> enchant : mutableEnchants.entrySet()){
 						enchant.setValue(enchant.getValue() + 1);
 						if(enchant.getValue() >= maxLevels.get(enchant.getKey())) maxLevel = true;
 					}
 				}
-				if(maxLevel) maxBooks.add(bookmeta.getStoredEnchants());
-				else mergeBooks.add(bookmeta.getStoredEnchants());
+				if(maxLevel) maxBooks.add(mutableEnchants);
+				else mergeBooks.add(mutableEnchants);
 			}
 		}
 		ItemStack[] resultBooks = new ItemStack[mergeBooks.size() + maxBooks.size()];
@@ -97,14 +101,16 @@ public class EnchantAPI{
 		for(Map<Enchantment, Integer> enchants : mergeBooks){
 			ItemStack item = new ItemStack(Material.ENCHANTED_BOOK);
 			EnchantmentStorageMeta bookmeta = (EnchantmentStorageMeta)item.getItemMeta();
-			bookmeta.getStoredEnchants().putAll(enchants);
+			for(Entry<Enchantment, Integer> enchant : enchants.entrySet())
+				bookmeta.addStoredEnchant(enchant.getKey(), enchant.getValue(), true);
 			item.setItemMeta(bookmeta);
 			resultBooks[i++] = item;
 		}
 		for(Map<Enchantment, Integer> enchants : maxBooks){
 			ItemStack item = new ItemStack(Material.ENCHANTED_BOOK);
 			EnchantmentStorageMeta bookmeta = (EnchantmentStorageMeta)item.getItemMeta();
-			bookmeta.getStoredEnchants().putAll(enchants);
+			for(Entry<Enchantment, Integer> enchant : enchants.entrySet())
+				bookmeta.addStoredEnchant(enchant.getKey(), enchant.getValue(), true);
 			item.setItemMeta(bookmeta);
 			resultBooks[i++] = item;
 		}
