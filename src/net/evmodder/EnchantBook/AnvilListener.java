@@ -20,7 +20,6 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.scheduler.BukkitRunnable;
-import net.evmodder.EvLib.extras.TypeUtils;
 
 public class AnvilListener implements Listener{
 	final EnchantBook plugin;
@@ -117,7 +116,17 @@ public class AnvilListener implements Listener{
 			case WOODEN_PICKAXE:
 			case WOODEN_SHOVEL:
 			case WOODEN_HOE:
-				return TypeUtils.isPlanks(applied.getType());
+				switch(applied.getType()){
+					case ACACIA_PLANKS:
+					case BIRCH_PLANKS:
+					case DARK_OAK_PLANKS:
+					case JUNGLE_PLANKS:
+					case OAK_PLANKS:
+					case SPRUCE_PLANKS:
+						return true;
+					default:
+						return false;
+				}
 			case ELYTRA:
 				return applied.getType() == Material.PHANTOM_MEMBRANE;
 			case TURTLE_HELMET:
