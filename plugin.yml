@@ -1,7 +1,7 @@
 name: EnchantBook
 main: net.evmodder.EnchantBook.EnchantBook
 Author: EvModder
-version: 3.0 #3.0=1.14 rewrite
+version: 3.1 #3=mc1.14 rewrite, .1=book splitting
 api-version: 1.13
 
 commands:
@@ -98,6 +98,7 @@ permissions:
          enchantbook.anvil.color.reset: true
          enchantbook.anvil.color.white: true
          enchantbook.anvil.color.yellow: true
+         enchantbook.anvil.color.*: true
 
    enchantbook.anvil.format:
       description: Add formats when naming an item on an anvil.
@@ -109,3 +110,4 @@ permissions:
          enchantbook.anvil.format.reset: true
          enchantbook.anvil.format.strikethrough: true
          enchantbook.anvil.format.underline: true
+         enchantbook.anvil.format.*: true

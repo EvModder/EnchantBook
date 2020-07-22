@@ -56,6 +56,9 @@ mending-and-infinity-bows: true #TODO: implement
 # Allow players to put multiple protection enchants on the same armor piece (1.14-1.14.2)
 multiple-protection-types: true #TODO: implement
 
+# Allow players to split enchantments from book to another using an anvil
+separate-books-on-anvil: true
+
 #TODO: implement
 looting-on-axe: true
 fire-aspect-on-axe: true

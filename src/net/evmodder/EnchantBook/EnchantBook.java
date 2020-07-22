@@ -11,6 +11,7 @@ import net.evmodder.EvLib.EvPlugin;
 import net.evmodder.EvLib.FileIO;
 
 public final class EnchantBook extends EvPlugin{
+	//TODO: On anvil: Enchantbook with multiple enchants + empty book = remove 1st enchant and put on empty book
 	private static EnchantBook plugin; public static EnchantBook getPlugin(){return plugin;}
 	static HashMap<String, Enchantment> enchantLookupMap;
 	static HashMap<Enchantment, Integer> maxLevelConfig;

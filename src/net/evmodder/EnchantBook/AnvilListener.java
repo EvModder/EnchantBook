@@ -20,13 +20,16 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.scheduler.BukkitRunnable;
+import net.evmodder.EvLib.extras.TextUtils;
 
 public class AnvilListener implements Listener{
 	final EnchantBook plugin;
-	HashMap<Permissible, AnvilInventory> openAnvils;
+	final boolean ALLOW_SEPARATING_ENCH_BOOKS;
+	final HashMap<Permissible, AnvilInventory> openAnvils;
 
 	public AnvilListener(){
 		plugin = EnchantBook.getPlugin();
+		ALLOW_SEPARATING_ENCH_BOOKS = plugin.getConfig().getBoolean("separate-books-on-anvil", true);
 		openAnvils = new HashMap<Permissible, AnvilInventory>();
 	}
 
@@ -38,15 +41,18 @@ public class AnvilListener implements Listener{
 		return item.hasItemMeta() && item.getItemMeta().hasDisplayName();
 	}
 
+	//TODO: rewrite & move to TextUtils?
 	static String translateByPermission(String str, Permissible p){
-		if(p.hasPermission("enchantbook.anvil.color") && p.hasPermission("enchantbook.anvil.format"))
-			return ChatColor.translateAlternateColorCodes('&', str);
+		if(p.hasPermission("enchantbook.anvil.color.*") && p.hasPermission("enchantbook.anvil.format.*"))
+			return TextUtils.translateAlternateColorCodes('&', str);
 		HashSet<Character> hasPerm = new HashSet<Character>();
 		for(ChatColor color : ChatColor.values()){
 			String colorName = color.name().toLowerCase();
-			if(p.hasPermission("enchantbook.anvil.color."+colorName)
-			|| p.hasPermission("enchantbook.anvil.format."+colorName))
-					hasPerm.add(color.getChar());
+			if(	p.hasPermission("enchantbook.anvil.color."+colorName) ||
+				p.hasPermission("enchantbook.anvil.color."+color.getChar()) ||
+				p.hasPermission("enchantbook.anvil.format."+colorName) ||
+				p.hasPermission("enchantbook.anvil.format."+color.getChar())
+			) hasPerm.add(color.getChar());
 		}
 		StringBuilder builder = new StringBuilder();
 		boolean amp = false;
@@ -137,6 +143,15 @@ public class AnvilListener implements Listener{
 	}
 
 	private ItemStack anvilOutputItem(ItemStack item0, ItemStack item1, Permissible p){
+		if(ALLOW_SEPARATING_ENCH_BOOKS && item0.getType() == Material.ENCHANTED_BOOK && item1.getType() == Material.BOOK){
+			Map<Enchantment, Integer> storedEnchants = ((EnchantmentStorageMeta)item0.getItemMeta()).getStoredEnchants();
+			ItemStack resultBook = new ItemStack(Material.ENCHANTED_BOOK);
+			EnchantmentStorageMeta meta = (EnchantmentStorageMeta)resultBook.getItemMeta();
+			Entry<Enchantment, Integer> enchantToRemove = storedEnchants.entrySet().iterator().next();
+			meta.addStoredEnchant(enchantToRemove.getKey(), enchantToRemove.getValue(), /*ignoreLevelRestriction=*/true);
+			return resultBook;
+		}
+		if(item0.getType() != item1.getType() && item1.getType() != Material.ENCHANTED_BOOK) return null;
 		item0 = item0.clone();
 
 		// Apply durability improvements
@@ -157,6 +172,8 @@ public class AnvilListener implements Listener{
 		Map<Enchantment, Integer> appliedEnchants = item0.getEnchantments();
 		Map<Enchantment, Integer> storedEnchants = item0.getItemMeta() instanceof EnchantmentStorageMeta ?
 				((EnchantmentStorageMeta)item0.getItemMeta()).getStoredEnchants() : null;
+
+		// Merge applied enchants from item 1 -> 0
 		for(Entry<Enchantment, Integer> enchant : item1.getItemMeta().getEnchants().entrySet()){
 			if(!conflicting && item0.getItemMeta().hasConflictingEnchant(enchant.getKey())) continue;
 			if(!anyItem && enchant.getKey().canEnchantItem(item0) == false) continue;
@@ -169,25 +186,10 @@ public class AnvilListener implements Listener{
 				appliedEnchants.put(enchant.getKey(), enchant.getValue());
 			}
 		}
-		if(item0.getItemMeta() instanceof EnchantmentStorageMeta){
-			Map<Enchantment, Integer> addedStoredEnchants =
-					((EnchantmentStorageMeta)item1.getItemMeta()).getStoredEnchants();
-			if(storedEnchants == null){
-				for(Entry<Enchantment, Integer> enchant : addedStoredEnchants.entrySet()){
-					if(!conflicting && item0.getItemMeta().hasConflictingEnchant(enchant.getKey())) continue;
-					if(!anyItem && enchant.getKey().canEnchantItem(item0) == false) continue;
-
-					int currentLevel = appliedEnchants.getOrDefault(enchant.getKey(), 0);
-					if(currentLevel == enchant.getValue() && currentLevel < maxLevels.get(enchant.getKey())){
-						appliedEnchants.put(enchant.getKey(), currentLevel + 1);
-					}
-					else if(enchant.getValue() > currentLevel){
-						appliedEnchants.put(enchant.getKey(), enchant.getValue());
-					}
-				}
-			}
-			else{
-				for(Entry<Enchantment, Integer> enchant : addedStoredEnchants.entrySet()){
+		if(item1.getItemMeta() instanceof EnchantmentStorageMeta){
+			Map<Enchantment, Integer> storedEnchantsToAdd = ((EnchantmentStorageMeta)item1.getItemMeta()).getStoredEnchants();
+			if(item0.getItemMeta() instanceof EnchantmentStorageMeta){ // Merge stored enchants
+				for(Entry<Enchantment, Integer> enchant : storedEnchantsToAdd.entrySet()){
 					int currentLevel = storedEnchants.getOrDefault(enchant.getKey(), 0);
 					if(currentLevel == enchant.getValue() && currentLevel < maxLevels.get(enchant.getKey())){
 						storedEnchants.put(enchant.getKey(), currentLevel + 1);
@@ -197,8 +199,21 @@ public class AnvilListener implements Listener{
 					}
 				}
 			}
+			else{ // Apply stored enchants
+				for(Entry<Enchantment, Integer> enchant : storedEnchantsToAdd.entrySet()){
+					if(!conflicting && item0.getItemMeta().hasConflictingEnchant(enchant.getKey())) continue;
+					if(!anyItem && enchant.getKey().canEnchantItem(item0) == false) continue;
+	
+					int currentLevel = appliedEnchants.getOrDefault(enchant.getKey(), 0);
+					if(currentLevel == enchant.getValue() && currentLevel < maxLevels.get(enchant.getKey())){
+						appliedEnchants.put(enchant.getKey(), currentLevel + 1);
+					}
+						else if(enchant.getValue() > currentLevel){
+						appliedEnchants.put(enchant.getKey(), enchant.getValue());
+					}
+				}
+			}
 		}
-		//TODO: ensure enchants are actually updated
 		return item0;
 	}
 
@@ -242,15 +257,16 @@ public class AnvilListener implements Listener{
 		if(!validItem(item0) && evt.getRawSlot() == 0 && validItem(evt.getCursor())) item0 = evt.getCursor();
 		if(!validItem(item1) && evt.getRawSlot() == 1 && validItem(evt.getCursor())) item1 = evt.getCursor();
 		if(!validItem(item0)) return; // Must have a primary input
-		if(validItem(item1) && (item0.getType() == item1.getType() || item1.getType() == Material.ENCHANTED_BOOK)){
+		if(validItem(item1)){
 			result = anvilOutputItem(item0, item1, evt.getWhoClicked());
-			anvil.setItem(2, result);//TODO: Recently added line, may break stuff!!
+			if(result != null) anvil.setItem(2, result);
 		}
 		else if(!validItem(result)) return;
 		//-----------------------------------------------------------------------------------------------
 
-		// If they are removing the result item, ensure the name is set
+		// They are removing the result item
 		if(evt.getRawSlot() == 2 && anvil.getItem(2) != null){
+			// Ensure the item name is set correctly
 			if(anvil.getItem(2).hasItemMeta() && anvil.getItem(2).getItemMeta().hasDisplayName()){
 				String itemName = anvil.getItem(2).getItemMeta().getDisplayName();
 				openAnvils.remove(evt.getWhoClicked());
@@ -260,6 +276,18 @@ public class AnvilListener implements Listener{
 				meta.setDisplayName(itemName);
 				result.setItemMeta(meta);
 				evt.setCurrentItem(result);
+			}
+			// Don't delete the input book (item0) when splitting enchantment books
+			if(ALLOW_SEPARATING_ENCH_BOOKS && item1.getType() == Material.BOOK){
+				Enchantment removedEnchant = ((EnchantmentStorageMeta)result.getItemMeta()).getStoredEnchants().keySet().iterator().next();
+				EnchantmentStorageMeta meta0 = (EnchantmentStorageMeta)item0.getItemMeta();
+				meta0.getStoredEnchants().remove(removedEnchant);
+				item0.setItemMeta(meta0);
+
+				evt.setCancelled(true);
+				anvil.setItem(0, item0);
+				anvil.setItem(1, null);
+				evt.setCurrentItem(result);//TODO: test if this actually gives them the item, if not, try setting itemOnCursor()
 			}
 		}
 	}
