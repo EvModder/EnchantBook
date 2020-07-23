@@ -23,7 +23,7 @@ public final class EnchantBook extends EvPlugin{
 		maxLevelConfig = new HashMap<Enchantment, Integer>();
 
 		InputStream defaultNames = getClass().getResourceAsStream("/enchant-names.yml");
-		YamlConfiguration enchAliases = FileIO.loadConfig(this, "enchant-names.yml", defaultNames);
+		YamlConfiguration enchAliases = FileIO.loadConfig(this, "enchant-names.yml", defaultNames, /*notifyIfNew=*/false);
 		for(String key : enchAliases.getKeys(false)){
 			String[] aliases = enchAliases.getString(key).toLowerCase().replaceAll("_", "").split(",");
 			Enchantment ench = parseEnchant(key);
