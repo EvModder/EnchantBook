@@ -3,7 +3,6 @@ package net.evmodder.EnchantBook;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -80,7 +79,7 @@ public class CommandEnchant extends EvCommand{
 
 		int lvlType = 1;
 		if(args.length > 1){
-			String lvlArg = StringUtils.join(Arrays.copyOfRange(args, 1, args.length), ' ');
+			String lvlArg = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
 
 			if(lvlArg.contains("app") || lvlArg.contains("true")){
 				// Only apply if this enchantment is regularly applicable to the particular item
