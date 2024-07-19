@@ -136,7 +136,7 @@ public class AnvilListener implements Listener{
 			case ELYTRA:
 				return applied.getType() == Material.PHANTOM_MEMBRANE;
 			case TURTLE_HELMET:
-				return applied.getType() == Material.SCUTE;
+				return applied.getType() == Material.TURTLE_SCUTE;
 			default:
 				return false;
 		}
