@@ -10,7 +10,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import net.evmodder.EnchantBook.EnchantBook.LimitType;
-import net.evmodder.EvLib.EvCommand;
+import net.evmodder.EvLib.bukkit.EvCommand;
 
 public class CommandCombineBooks extends EvCommand{
 	public CommandCombineBooks(EnchantBook plugin){
