@@ -20,7 +20,7 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.scheduler.BukkitRunnable;
-import net.evmodder.EvLib.TextUtils;
+import net.evmodder.EvLib.util.TextUtils_New;
 
 public class AnvilListener implements Listener{
 	final EnchantBook plugin;
@@ -44,7 +44,7 @@ public class AnvilListener implements Listener{
 	//TODO: rewrite & move to TextUtils?
 	static String translateByPermission(String str, Permissible p){
 		if(p.hasPermission("enchantbook.anvil.color.*") && p.hasPermission("enchantbook.anvil.format.*"))
-			return TextUtils.translateAlternateColorCodes('&', str);
+			return TextUtils_New.translateAlternateColorCodes('&', str);
 		HashSet<Character> hasPerm = new HashSet<Character>();
 		for(ChatColor color : ChatColor.values()){
 			String colorName = color.name().toLowerCase();

@@ -7,8 +7,9 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.permissions.Permissible;
+import net.evmodder.EvLib.bukkit.ConfigUtils;
 import net.evmodder.EvLib.bukkit.EvPlugin;
-import net.evmodder.EvLib.FileIO;
+import net.evmodder.EvLib.util.FileIO;
 
 public final class EnchantBook extends EvPlugin{
 	//TODO: On anvil: Enchantbook with multiple enchants + empty book = remove 1st enchant and put on empty book
@@ -22,8 +23,9 @@ public final class EnchantBook extends EvPlugin{
 		enchantLookupMap = new HashMap<String, Enchantment>();
 		maxLevelConfig = new HashMap<Enchantment, Integer>();
 
+		ConfigUtils.updateConfigDirName(this);
 		InputStream defaultNames = getClass().getResourceAsStream("/enchant-names.yml");
-		YamlConfiguration enchAliases = FileIO.loadConfig(this, "enchant-names.yml", defaultNames, /*notifyIfNew=*/false);
+		YamlConfiguration enchAliases = ConfigUtils.loadConfig(this, "enchant-names.yml", defaultNames, /*notifyIfNew=*/false);
 		for(String key : enchAliases.getKeys(false)){
 			String[] aliases = enchAliases.getString(key).toLowerCase().replaceAll("_", "").split(",");
 			Enchantment ench = parseEnchant(key);
